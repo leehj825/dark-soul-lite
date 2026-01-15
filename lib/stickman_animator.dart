@@ -2,12 +2,22 @@ import 'dart:math';
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 import 'package:stickman_3d/stickman_3d.dart';
-import 'custom_stickman_painter.dart';
+// Note: StickmanPainter is exported by stickman_3d.dart (which usually exports src/stickman_painter.dart)
+// But I need to be sure. The file structure showed src/stickman_painter.dart.
+// The main lib file usually exports src files.
+// Assuming package:stickman_3d/stickman_3d.dart exports StickmanPainter.
 
 class StickmanAnimator extends PositionComponent {
   final StickmanController controller;
+
+  // Camera/View state
   double cameraYaw = 0.0;
-  double targetFacingAngle = 0.0;
+
+  // Movement state for the controller
+  Vector2 velocity = Vector2.zero();
+
+  // Manual override for rotation (useful for stationary entities like Boss)
+  double? facingAngleOverride;
 
   StickmanAnimator({
     required this.controller,
@@ -16,15 +26,32 @@ class StickmanAnimator extends PositionComponent {
 
   @override
   void render(Canvas canvas) {
-    // Implement render(...) that passes cameraYaw to the painter.
-    // Since we are in a Flame Component, we can use the CustomPainter to draw on the canvas.
+    // Determine the view rotation Y (Yaw)
+    // viewRotationY determines the camera angle relative to the stickman.
+    // effectiveYaw = StickmanFacing - CameraYaw
 
-    // We can't just instantiate CustomPainter and call paint because CustomPainter expects to be used in a CustomPaint widget.
-    // However, we can manually invoke it.
+    // If controller is moving, it updates its internal facing angle.
+    // If not moving (Boss), it stays static (0).
+    // The StickmanPainter uses 'viewRotationY' to rotate the model during projection.
 
-    final painter = CustomStickmanPainter(
+    // Logic:
+    // If override is present, use it.
+    // If not, rely on controller's internal state (which we can't easily read perfectly if private, but we assume it matches velocity).
+    // Actually, controller.facingAngle IS a getter. I saw `double get facingAngle => _facingAngle;`.
+    // So we CAN read it.
+
+    double stickmanFacing = facingAngleOverride ?? controller.facingAngle;
+    double viewRotationY = stickmanFacing - cameraYaw;
+
+    // Perspective: Set viewRotationX to roughly -pi / 10 (Low angle)
+    const double viewRotationX = -pi / 10;
+
+    // Use the package's StickmanPainter to draw
+    final painter = StickmanPainter(
       controller: controller,
-      cameraYaw: cameraYaw,
+      viewRotationX: viewRotationX,
+      viewRotationY: viewRotationY,
+      cameraView: CameraView.free,
     );
 
     painter.paint(canvas, size.toSize());
@@ -34,28 +61,8 @@ class StickmanAnimator extends PositionComponent {
   void update(double dt) {
     super.update(dt);
 
-    // Implement update(...) to handle manual rotation smoothing towards movement direction.
-    // "controller.facingAngle" seems to be what we need to update.
-
-    // Smooth rotation logic
-    double currentAngle = controller.facingAngle;
-    double diff = targetFacingAngle - currentAngle;
-
-    // Normalize diff to -pi to pi
-    while (diff > pi) diff -= 2 * pi;
-    while (diff < -pi) diff += 2 * pi;
-
-    if (diff.abs() > 0.01) {
-      double rotationSpeed = 5.0; // Radians per second
-      double change = rotationSpeed * dt;
-      if (change > diff.abs()) {
-        controller.facingAngle = targetFacingAngle;
-      } else {
-        controller.facingAngle += change * diff.sign;
-      }
-    }
-
-    // Also need to update the controller's internal animation state if needed
-    controller.update(dt);
+    // Update the controller with velocity
+    // This drives the procedural animation (running, facing)
+    controller.update(dt, velocity.x, velocity.y);
   }
 }
