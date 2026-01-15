@@ -25,36 +25,35 @@ class StickmanAnimator extends PositionComponent {
   });
 
   @override
+  Future<void> onLoad() async {
+    await super.onLoad();
+    // Force initial update to ensure skeleton is not empty/null
+    controller.update(0.0, 0.0, 0.0);
+  }
+
+  @override
   void render(Canvas canvas) {
-    // Determine the view rotation Y (Yaw)
-    // viewRotationY determines the camera angle relative to the stickman.
-    // effectiveYaw = StickmanFacing - CameraYaw
+    try {
+      // Determine the view rotation Y (Yaw)
+      double stickmanFacing = facingAngleOverride ?? controller.facingAngle;
+      double viewRotationY = stickmanFacing - cameraYaw;
 
-    // If controller is moving, it updates its internal facing angle.
-    // If not moving (Boss), it stays static (0).
-    // The StickmanPainter uses 'viewRotationY' to rotate the model during projection.
+      // Perspective: Set viewRotationX to roughly -pi / 10 (Low angle)
+      const double viewRotationX = -pi / 10;
 
-    // Logic:
-    // If override is present, use it.
-    // If not, rely on controller's internal state (which we can't easily read perfectly if private, but we assume it matches velocity).
-    // Actually, controller.facingAngle IS a getter. I saw `double get facingAngle => _facingAngle;`.
-    // So we CAN read it.
+      // Use the package's StickmanPainter to draw
+      final painter = StickmanPainter(
+        controller: controller,
+        viewRotationX: viewRotationX,
+        viewRotationY: viewRotationY,
+        cameraView: CameraView.free,
+      );
 
-    double stickmanFacing = facingAngleOverride ?? controller.facingAngle;
-    double viewRotationY = stickmanFacing - cameraYaw;
-
-    // Perspective: Set viewRotationX to roughly -pi / 10 (Low angle)
-    const double viewRotationX = -pi / 10;
-
-    // Use the package's StickmanPainter to draw
-    final painter = StickmanPainter(
-      controller: controller,
-      viewRotationX: viewRotationX,
-      viewRotationY: viewRotationY,
-      cameraView: CameraView.free,
-    );
-
-    painter.paint(canvas, size.toSize());
+      painter.paint(canvas, size.toSize());
+    } catch (e) {
+      // Prevent crash if painter fails
+      debugPrint('StickmanPainter error: $e');
+    }
   }
 
   @override

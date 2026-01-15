@@ -18,6 +18,9 @@ class SoulsStickmanGame extends FlameGame with HasKeyboardHandlerComponents {
   late final HudButtonComponent dodgeButton;
 
   @override
+  Color backgroundColor() => const Color(0xFF222222);
+
+  @override
   Future<void> onLoad() async {
     await super.onLoad();
 
@@ -43,6 +46,7 @@ class SoulsStickmanGame extends FlameGame with HasKeyboardHandlerComponents {
       knob: CircleComponent(radius: 20, paint: knobPaint),
       background: CircleComponent(radius: 50, paint: backgroundPaint),
       margin: const EdgeInsets.only(left: 40, bottom: 40),
+      priority: 10,
     );
     add(joystick);
 
@@ -54,6 +58,7 @@ class SoulsStickmanGame extends FlameGame with HasKeyboardHandlerComponents {
       onPressed: () {
         player.dodge();
       },
+      priority: 10,
     );
     add(dodgeButton);
 
