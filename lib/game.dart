@@ -9,6 +9,14 @@ import 'package:flutter/services.dart';
 import 'package:stickman_3d/stickman_3d.dart';
 import 'stickman_animator.dart';
 
+enum PlayerState {
+  idle,
+  running,
+  rolling,
+  attacking,
+  blocking
+}
+
 class SoulsStickmanGame extends FlameGame with HasKeyboardHandlerComponents {
   late Player player;
   late Boss boss;
@@ -79,10 +87,21 @@ class SoulsStickmanGame extends FlameGame with HasKeyboardHandlerComponents {
   void update(double dt) {
     // 1. Reset velocity to zero by default so player stops if no input
     player.animator.velocity = Vector2.zero();
+    // Default to idle if not controlled
+    if (player.state != PlayerState.rolling && player.state != PlayerState.attacking && player.state != PlayerState.blocking) {
+       // Only switch to idle if we are not locked in an action
+       // But Joystick logic below will switch to running if moving.
+       // So we set idle here, and if joystick is active, it will override to running.
+       player.switchState(PlayerState.idle);
+    }
 
     // 2. Process input (this will set velocity if joystick is moving)
     if (!joystick.delta.isZero()) {
-      player.move(joystick.relativeDelta, cameraComponent.yaw, dt);
+      // If we are rolling or attacking, ignore input (lock movement)
+      if (player.state != PlayerState.rolling && player.state != PlayerState.attacking) {
+         player.move(joystick.relativeDelta, cameraComponent.yaw, dt);
+         player.switchState(PlayerState.running);
+      }
     }
 
     // 3. Update children (uses the velocity set above)
@@ -93,7 +112,7 @@ class SoulsStickmanGame extends FlameGame with HasKeyboardHandlerComponents {
 class Player extends PositionComponent {
   final StickmanAnimator animator;
   final double speed = 100.0;
-  bool isDodging = false;
+  PlayerState state = PlayerState.idle;
 
   Player({required StickmanController controller})
       : animator = StickmanAnimator(controller: controller, size: Vector2(50, 100)),
@@ -101,17 +120,35 @@ class Player extends PositionComponent {
     add(animator);
   }
 
-  void move(Vector2 direction, double cameraYaw, double dt) {
-    if (isDodging) return;
+  void switchState(PlayerState newState) {
+    if (state == newState) return;
+    state = newState;
 
+    String animName;
+    switch (state) {
+      case PlayerState.idle:
+        animName = "sword and shield idle";
+        break;
+      case PlayerState.running:
+        animName = "sword and shield run";
+        break;
+      case PlayerState.rolling:
+        animName = "Sprinting Forward Roll";
+        break;
+      case PlayerState.attacking:
+        animName = "sword and shield slash";
+        break;
+      case PlayerState.blocking:
+        animName = "sword and shield block idle";
+        break;
+    }
+    animator.playAnimation(animName);
+  }
+
+  void move(Vector2 direction, double cameraYaw, double dt) {
     // Calculate world angle
     double joystickAngle = direction.screenAngle();
     double targetWorldAngle = cameraYaw + joystickAngle;
-
-    // Calculate velocity for the animator
-    // Animator expects velocity relative to world to calculate facing, OR just magnitude?
-    // Controller.update(dt, vx, vy) uses vx, vy for direction.
-    // So we pass world velocity.
 
     Vector2 velocity = Vector2(sin(targetWorldAngle), -cos(targetWorldAngle)) * speed;
 
@@ -119,12 +156,7 @@ class Player extends PositionComponent {
 
     animator.velocity = velocity;
     animator.cameraYaw = cameraYaw;
-    // We do NOT set animator.targetFacingAngle anymore, because controller derives it from velocity.
   }
-
-  // Need to zero out velocity if no input?
-  // Game calls move() only if joystick is not zero.
-  // So we need an update loop here to reset velocity if not moving.
 
   @override
   void update(double dt) {
@@ -132,19 +164,15 @@ class Player extends PositionComponent {
   }
 
   void dodge() {
-    if (isDodging) return;
-    isDodging = true;
+    if (state == PlayerState.rolling) return;
 
-    // Dash: High velocity?
-    // StickmanController doesn't have 'dash'.
-    // Maybe just high speed.
-    // And set state to avoid input interruption.
+    switchState(PlayerState.rolling);
 
-    // We can't use playAnimation('dash').
-    // We will just assume visual effect or speed boost.
-
+    // Lock movement for 500ms
     Future.delayed(const Duration(milliseconds: 500), () {
-      isDodging = false;
+      if (state == PlayerState.rolling) {
+        switchState(PlayerState.idle);
+      }
     });
   }
 }
