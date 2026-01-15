@@ -6,8 +6,11 @@ import 'game.dart';
 void main() {
   runZonedGuarded(() {
     runApp(MaterialApp(
-      home: GameWidget<SoulsStickmanGame>.controlled(
-        gameFactory: SoulsStickmanGame.new,
+      debugShowCheckedModeBanner: false, // Removes the debug banner
+      home: Scaffold(
+        body: GameWidget<SoulsStickmanGame>.controlled(
+          gameFactory: SoulsStickmanGame.new,
+        ),
       ),
     ));
   }, (error, stack) {

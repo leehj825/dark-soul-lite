@@ -15,7 +15,7 @@ class StickmanAnimator extends PositionComponent {
 
   // Loading state
   bool _isLoaded = false;
-  String? _pendingAnimation; // Fixes the race condition
+  String? _pendingAnimation;
   final Map<String, StickmanClip> _clips = {};
 
   StickmanAnimator({
@@ -31,6 +31,26 @@ class StickmanAnimator extends PositionComponent {
 
       if (sapContent.isNotEmpty) {
         final jsonMap = jsonDecode(sapContent);
+
+        // ---------------------------------------------------------
+        // 1. LOAD SKELETON (This fixes the "Default Stickman" issue)
+        // ---------------------------------------------------------
+        if (jsonMap.containsKey('skeleton')) {
+          try {
+            // Create the custom skeleton from JSON
+            final customSkeleton = StickmanSkeleton.fromJson(jsonMap['skeleton']);
+
+            // Assign it to the controller
+            controller.skeleton = customSkeleton;
+            debugPrint("✅ LOADED CUSTOM SKELETON");
+          } catch (e) {
+            debugPrint("⚠️ Failed to load skeleton: $e");
+          }
+        }
+
+        // ---------------------------------------------------------
+        // 2. LOAD ANIMATIONS
+        // ---------------------------------------------------------
         List<StickmanClip> loadedClips = [];
         if (jsonMap.containsKey('clips')) {
           loadedClips = (jsonMap['clips'] as List)
@@ -39,20 +59,18 @@ class StickmanAnimator extends PositionComponent {
         } else if (jsonMap.containsKey('keyframes')) {
            loadedClips = [StickmanClip.fromJson(jsonMap)];
         }
-        // STORE AND NORMALIZE NAMES
-        for (var clip in loadedClips) {
-          // Fix: Remove ".fbx" so "sword idle.fbx" becomes "sword idle"
-          String cleanName = clip.name.replaceAll('.fbx', '');
 
-          // Update the clip's internal name too
-          // Note: StickmanClip might be immutable, so we just map the clean key
+        for (var clip in loadedClips) {
+          // Normalize names: "sword idle.fbx" -> "sword idle"
+          String cleanName = clip.name.replaceAll('.fbx', '');
           _clips[cleanName] = clip;
         }
         debugPrint("✅ LOADED ANIMATIONS: ${_clips.keys.join(', ')}");
       }
+
       _isLoaded = true;
 
-      // Fix: Play the animation that was requested while loading
+      // Play pending animation if one was requested during load
       if (_pendingAnimation != null) {
         playAnimation(_pendingAnimation!);
         _pendingAnimation = null;
@@ -60,18 +78,16 @@ class StickmanAnimator extends PositionComponent {
 
       controller.update(0.0, 0.0, 0.0);
     } catch (e) {
-      debugPrint("❌ ERROR loading animations: $e");
+      debugPrint("❌ CRITICAL ERROR loading animations: $e");
     }
   }
 
   void playAnimation(String name) {
-    // 1. If not loaded yet, save for later
     if (!_isLoaded) {
       _pendingAnimation = name;
       return;
     }
 
-    // 2. Play if found
     if (_clips.containsKey(name)) {
       final clip = _clips[name];
       if (controller.activeClip != clip) {
@@ -80,9 +96,6 @@ class StickmanAnimator extends PositionComponent {
         controller.currentFrameIndex = 0;
         controller.setMode(EditorMode.animate);
       }
-    } else {
-      // Optional: fallback to fuzzy matching if exact match fails
-      // debugPrint("⚠️ Animation '$name' not found. Available: ${_clips.keys.length}");
     }
   }
 
@@ -94,6 +107,7 @@ class StickmanAnimator extends PositionComponent {
       double stickmanFacing = facingAngleOverride ?? controller.facingAngle;
       double viewRotationY = stickmanFacing - cameraYaw;
       const double viewRotationX = -pi / 10;
+
       final painter = StickmanPainter(
         controller: controller,
         viewRotationX: viewRotationX,
