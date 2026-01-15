@@ -173,7 +173,7 @@ class Player extends PositionComponent {
   }
 }
 
-class Boss extends PositionComponent {
+class Boss extends PositionComponent with HasGameRef<SoulsStickmanGame> {
   final StickmanAnimator animator;
 
   Boss({required StickmanController controller})
@@ -191,32 +191,25 @@ class Boss extends PositionComponent {
     super.update(dt);
     timer += dt;
 
-    final player = (parent as SoulsStickmanGame).player;
+    final player = gameRef.player;
 
     if (state == 'idle') {
        Vector2 diff = player.position - position;
        double targetAngle = atan2(diff.x, -diff.y);
 
-       // Boss rotates in place.
-       // Animator.velocity is 0.
-       // We use facingAngleOverride.
        animator.facingAngleOverride = targetAngle;
 
        if (timer > 2.0) {
          state = 'attacking';
          timer = 0;
          animator.controller.isAttacking = true;
+         animator.playAnimation("sword and shield slash");
        }
     } else if (state == 'attacking') {
-      // Attack duration handling
-      if (!animator.controller.isAttacking) {
-        // Controller resets isAttacking automatically after animation?
-        // Logic: _attackTimer > 0.3.
-        // So we just wait.
-        if (timer > 1.5) {
-           state = 'idle';
-           timer = 0;
-        }
+      if (timer > 1.5) {
+         state = 'idle';
+         timer = 0;
+         animator.playAnimation("sword and shield idle");
       }
     }
   }
