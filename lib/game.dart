@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
 import 'package:flame/game.dart';
+import 'package:flame/palette.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:stickman_3d/stickman_3d.dart';
@@ -27,6 +28,7 @@ class SoulsStickmanGame extends FlameGame with HasKeyboardHandlerComponents {
 
     // Setup Camera
     cameraComponent = SoulsCameraComponent();
+    add(cameraComponent);
     // In Flame 1.21.0, CameraComponent is standard.
     // But we need a custom one that follows player in lower-center.
     // We will attach the world to the camera if we use the new CameraSystem,
