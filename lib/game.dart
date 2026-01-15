@@ -35,7 +35,7 @@ class SoulsStickmanGame extends FlameGame with HasKeyboardHandlerComponents {
     await super.onLoad();
 
     // 1. Set a fixed low-resolution viewport (320x180 is classic 16:9 retro)
-    camera.viewport = FixedResolutionViewport(resolution: Vector2(320, 180));
+    camera.viewport = FixedSizeViewport(320, 180);
 
     // Enable debug mode to see component boundaries
     debugMode = true;

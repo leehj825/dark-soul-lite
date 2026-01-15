@@ -15,7 +15,7 @@ class StickmanAnimator extends PositionComponent {
 
   bool _isLoaded = false;
 
-  // INTERNAL STORAGE for animations (since Controller doesn't have a library)
+  // Internal storage for clips since we are manually managing them
   final Map<String, StickmanClip> _clips = {};
 
   StickmanAnimator({
@@ -27,56 +27,50 @@ class StickmanAnimator extends PositionComponent {
   Future<void> onLoad() async {
     await super.onLoad();
     try {
-      // 1. Load the file string
+      // 1. Load the file content as a string
       final sapContent = await rootBundle.loadString('assets/data/animations.sap');
 
-      // 2. Manually parse JSON (Bypassing StickmanPersistence)
+      // 2. Manually parse the JSON (Fixes the build error)
       if (sapContent.isNotEmpty) {
         final jsonMap = jsonDecode(sapContent);
-
         List<StickmanClip> loadedClips = [];
-
-        // Handle Project Format
+        // Handle standard project format
         if (jsonMap.containsKey('clips')) {
           loadedClips = (jsonMap['clips'] as List)
               .map((c) => StickmanClip.fromJson(c))
               .toList();
         }
-        // Handle Legacy Single-Clip Format
+        // Handle single clip format
         else if (jsonMap.containsKey('keyframes')) {
            loadedClips = [StickmanClip.fromJson(jsonMap)];
         }
-
-        // Store clips in our local map
+        // 3. Store clips in our local map
         for (var clip in loadedClips) {
           _clips[clip.name] = clip;
         }
-
-        debugPrint("Loaded ${_clips.length} animations: ${_clips.keys.join(', ')}");
+        debugPrint("Stickman Loaded: ${_clips.length} animations found.");
       }
-
       _isLoaded = true;
-
-      // Force update to prevent crashes
+      // 4. Force initial update to prevent render crash
       controller.update(0.0, 0.0, 0.0);
     } catch (e) {
-      debugPrint("Error initializing Stickman animations: $e");
+      debugPrint("CRITICAL ERROR loading animations: $e");
     }
   }
 
   void playAnimation(String name) {
-    // 1. Check if loaded
     if (!_isLoaded) return;
 
-    // 2. Look up clip in OUR local map
+    // Look up the clip in our manually loaded map
     if (_clips.containsKey(name)) {
       final clip = _clips[name];
-
-      // 3. Set the active clip on the controller directly
-      controller.activeClip = clip;
-      controller.isPlaying = true;
-      controller.currentFrameIndex = 0;
-      controller.setMode(EditorMode.animate);
+      // Apply to controller
+      if (controller.activeClip?.name != name) {
+        controller.activeClip = clip;
+        controller.isPlaying = true;
+        controller.currentFrameIndex = 0;
+        controller.setMode(EditorMode.animate);
+      }
     } else {
       // debugPrint("Animation '$name' not found.");
     }
@@ -84,26 +78,24 @@ class StickmanAnimator extends PositionComponent {
 
   @override
   void render(Canvas canvas) {
+    // Prevent rendering before data is ready (Fixes Gray Screen)
     if (!_isLoaded) return;
 
-    // Debug circle
+    // Debug visual
     // canvas.drawCircle(Offset(size.x/2, size.y/2), 10, Paint()..color = Colors.cyan);
-
     try {
       double stickmanFacing = facingAngleOverride ?? controller.facingAngle;
       double viewRotationY = stickmanFacing - cameraYaw;
       const double viewRotationX = -pi / 10;
-
       final painter = StickmanPainter(
         controller: controller,
         viewRotationX: viewRotationX,
         viewRotationY: viewRotationY,
         cameraView: CameraView.free,
       );
-
       painter.paint(canvas, size.toSize());
     } catch (e) {
-      // Suppress render errors during loading
+      // Suppress transient render errors
     }
   }
 
@@ -111,6 +103,8 @@ class StickmanAnimator extends PositionComponent {
   void update(double dt) {
     super.update(dt);
     if (!_isLoaded) return;
+
+    // Update the physics/animation controller
     controller.update(dt, velocity.x, velocity.y);
   }
 }
