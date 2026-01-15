@@ -40,8 +40,9 @@ class StickmanAnimator extends PositionComponent {
             // Create the custom skeleton from JSON
             final customSkeleton = StickmanSkeleton.fromJson(jsonMap['skeleton']);
 
-            // Assign it to the controller
-            controller.skeleton = customSkeleton;
+            // FIX: Use lerp(1.0) to copy values instead of reassignment
+            controller.skeleton.lerp(customSkeleton, 1.0);
+
             debugPrint("✅ LOADED CUSTOM SKELETON");
           } catch (e) {
             debugPrint("⚠️ Failed to load skeleton: $e");
