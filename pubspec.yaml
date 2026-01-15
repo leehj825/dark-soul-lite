@@ -10,7 +10,9 @@ dependencies:
   flutter:
     sdk: flutter
   flame: ^1.21.0
-  stickman_3d: ^0.2.0
+  stickman_3d:
+    git:
+      url: https://github.com/leehj825/stickman-animator.git
   vector_math: ^2.1.4
 
 dev_dependencies:
