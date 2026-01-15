@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
 import 'package:flame/game.dart';
+import 'package:flame/input.dart';
 import 'package:flame/palette.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -36,8 +37,8 @@ class SoulsStickmanGame extends FlameGame with HasKeyboardHandlerComponents {
     world.add(boss);
 
     // Joystick
-    final knobPaint = BasicPalette.blue.withAlpha(200).paint();
-    final backgroundPaint = BasicPalette.blue.withAlpha(100).paint();
+    final knobPaint = BasicPalette.blue.paint()..color = BasicPalette.blue.color.withAlpha(200);
+    final backgroundPaint = BasicPalette.blue.paint()..color = BasicPalette.blue.color.withAlpha(100);
     joystick = JoystickComponent(
       knob: CircleComponent(radius: 20, paint: knobPaint),
       background: CircleComponent(radius: 50, paint: backgroundPaint),
@@ -46,8 +47,9 @@ class SoulsStickmanGame extends FlameGame with HasKeyboardHandlerComponents {
     add(joystick);
 
     // Dodge Button
+    final dodgePaint = BasicPalette.red.paint()..color = BasicPalette.red.color.withAlpha(200);
     dodgeButton = HudButtonComponent(
-      button: CircleComponent(radius: 30, paint: BasicPalette.red.withAlpha(200).paint()),
+      button: CircleComponent(radius: 30, paint: dodgePaint),
       margin: const EdgeInsets.only(right: 40, bottom: 40),
       onPressed: () {
         player.dodge();
