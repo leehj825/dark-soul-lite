@@ -66,7 +66,7 @@ class SoulsStickmanGame extends FlameGame with HasKeyboardHandlerComponents {
   void update(double dt) {
     // Process input BEFORE updating children so velocity is set for this frame
     if (!joystick.delta.isZero()) {
-      player.move(joystick.relativeDelta, cameraComponent.yaw);
+      player.move(joystick.relativeDelta, cameraComponent.yaw, dt);
     }
 
     super.update(dt);
@@ -84,7 +84,7 @@ class Player extends PositionComponent {
     add(animator);
   }
 
-  void move(Vector2 direction, double cameraYaw) {
+  void move(Vector2 direction, double cameraYaw, double dt) {
     if (isDodging) return;
 
     // Calculate world angle
@@ -98,12 +98,7 @@ class Player extends PositionComponent {
 
     Vector2 velocity = Vector2(sin(targetWorldAngle), -cos(targetWorldAngle)) * speed;
 
-    position.add(velocity * 0.016); // Approximating dt? We should use actual dt, but this is inside move called from update?
-    // Player.move is called from Game.update, but dt is not passed.
-    // Let's rely on Game.update passing dt to Player.move?
-    // Or simpler: Game calls player.move with direction, Player stores velocity, and updates position in Player.update.
-    // For now, I'll just accept that movement happens here. Ideally I should pass dt.
-    // But to fix the API issue:
+    position.add(velocity * dt);
 
     animator.velocity = velocity;
     animator.cameraYaw = cameraYaw;
