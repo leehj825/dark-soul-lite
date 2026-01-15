@@ -85,22 +85,18 @@ class SoulsStickmanGame extends FlameGame with HasKeyboardHandlerComponents {
 
   @override
   void update(double dt) {
-    // 1. Reset velocity to zero by default so player stops if no input
-    player.animator.velocity = Vector2.zero();
-    // Default to idle if not controlled
-    if (player.state != PlayerState.rolling && player.state != PlayerState.attacking && player.state != PlayerState.blocking) {
-       // Only switch to idle if we are not locked in an action
-       // But Joystick logic below will switch to running if moving.
-       // So we set idle here, and if joystick is active, it will override to running.
-       player.switchState(PlayerState.idle);
-    }
-
-    // 2. Process input (this will set velocity if joystick is moving)
+    // 1. Process input (this will set velocity if joystick is moving)
     if (!joystick.delta.isZero()) {
       // If we are rolling or attacking, ignore input (lock movement)
-      if (player.state != PlayerState.rolling && player.state != PlayerState.attacking) {
+      if (player.state != PlayerState.rolling && player.state != PlayerState.attacking && player.state != PlayerState.blocking) {
          player.move(joystick.relativeDelta, cameraComponent.yaw, dt);
          player.switchState(PlayerState.running);
+      }
+    } else {
+      // Joystick released
+      if (player.state == PlayerState.running) {
+        player.animator.velocity = Vector2.zero();
+        player.switchState(PlayerState.idle);
       }
     }
 
