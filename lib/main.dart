@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'game.dart';
 
 void main() {
-  runApp(const GameWidget<SoulsStickmanGame>.controlled(
-    gameFactory: SoulsStickmanGame.new,
+  runApp(MaterialApp(
+    home: const GameWidget<SoulsStickmanGame>.controlled(
+      gameFactory: SoulsStickmanGame.new,
+    ),
   ));
 }

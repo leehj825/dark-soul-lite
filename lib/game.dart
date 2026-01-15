@@ -77,11 +77,15 @@ class SoulsStickmanGame extends FlameGame with HasKeyboardHandlerComponents {
 
   @override
   void update(double dt) {
-    // Process input BEFORE updating children so velocity is set for this frame
+    // 1. Reset velocity to zero by default so player stops if no input
+    player.animator.velocity = Vector2.zero();
+
+    // 2. Process input (this will set velocity if joystick is moving)
     if (!joystick.delta.isZero()) {
       player.move(joystick.relativeDelta, cameraComponent.yaw, dt);
     }
 
+    // 3. Update children (uses the velocity set above)
     super.update(dt);
   }
 }
@@ -125,26 +129,6 @@ class Player extends PositionComponent {
   @override
   void update(double dt) {
     super.update(dt);
-    // Reset velocity every frame? Or assume it's set by move().
-    // Since move() is called every frame joystick is active, we can just decay it or set it to zero at start of update?
-    // But update order matters.
-    // Better: Game calls move() which sets velocity.
-    // If Game doesn't call move(), velocity should be zero.
-    // But we don't know if Game will call move().
-    // Let's add stop() method or just set velocity to zero in update, and move() overrides it.
-
-    animator.velocity = Vector2.zero();
-    // But move() is called inside Game.update. PositionComponent.update is called after Game.update usually?
-    // Actually FlameGame.update calls update on children.
-    // Game.update calls super.update(dt) (which updates children) THEN does joystick logic.
-    // So children update first.
-    // So if I set velocity=0 in update, it clears it for the NEXT frame's render?
-    // No.
-    // 1. Game.update -> super.update -> Player.update (sets vel=0) -> Animator.update (uses vel=0).
-    // 2. Game.update -> check joystick -> Player.move (sets vel=V).
-    // Result: Animator uses 0 velocity. Bad.
-
-    // Fix: Move joystick logic BEFORE super.update in Game.
   }
 
   void dodge() {

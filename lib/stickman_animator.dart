@@ -27,8 +27,12 @@ class StickmanAnimator extends PositionComponent {
   @override
   Future<void> onLoad() async {
     await super.onLoad();
-    // Force initial update to ensure skeleton is not empty/null
-    controller.update(0.0, 0.0, 0.0);
+    try {
+      // Force initial update to ensure skeleton is not empty/null
+      controller.update(0.0, 0.0, 0.0);
+    } catch (e) {
+      debugPrint("Error initializing StickmanController: $e");
+    }
   }
 
   @override
@@ -63,8 +67,12 @@ class StickmanAnimator extends PositionComponent {
   void update(double dt) {
     super.update(dt);
 
-    // Update the controller with velocity
-    // This drives the procedural animation (running, facing)
-    controller.update(dt, velocity.x, velocity.y);
+    try {
+      // Update the controller with velocity
+      // This drives the procedural animation (running, facing)
+      controller.update(dt, velocity.x, velocity.y);
+    } catch (e) {
+      debugPrint("Error updating StickmanController: $e");
+    }
   }
 }
