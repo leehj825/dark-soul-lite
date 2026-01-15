@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:stickman_3d/stickman_3d.dart';
 import 'stickman_animator.dart';
+import 'perspective_grid.dart';
 
 enum PlayerState {
   idle,
@@ -32,12 +33,18 @@ class SoulsStickmanGame extends FlameGame with HasKeyboardHandlerComponents {
   Future<void> onLoad() async {
     await super.onLoad();
 
+    // 1. Set a fixed low-resolution viewport (320x180 is classic 16:9 retro)
+    camera.viewport = FixedResolutionViewport(resolution: Vector2(320, 180));
+
     // Enable debug mode to see component boundaries
     debugMode = true;
 
     // Setup Camera
     cameraComponent = SoulsCameraComponent();
     add(cameraComponent);
+
+    // 2. Add the 3D Floor
+    world.add(PerspectiveGrid(cameraComponent));
 
     // Initialize Player
     final playerController = StickmanController();
