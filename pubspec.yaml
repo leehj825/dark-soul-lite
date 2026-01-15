@@ -1,0 +1,26 @@
+name: souls_stickman
+description: A Dark Souls-Lite stickman game using Flame.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flame: ^1.21.0
+  stickman_3d:
+    git:
+      url: https://github.com/leehj825/stickman-animator.git
+  vector_math: ^2.1.4
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/data/animations.sap
