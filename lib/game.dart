@@ -34,28 +34,28 @@ class SoulsStickmanGame extends FlameGame with HasKeyboardHandlerComponents {
   Future<void> onLoad() async {
     await super.onLoad();
 
-    // 1. Set a fixed low-resolution viewport (320x180 is classic 16:9 retro)
-    camera.viewport = FixedSizeViewport(320, 180);
+    // FIX: Use visibleGameSize for fullscreen retro look
+    camera.viewfinder.visibleGameSize = Vector2(320, 180);
+    camera.viewfinder.anchor = const Anchor(0.5, 0.8);
 
-    // Enable debug mode to see component boundaries
+    // Debug mode
     debugMode = true;
 
-    // Setup Camera
+    // Setup Camera Component (Logic)
     cameraComponent = SoulsCameraComponent();
     add(cameraComponent);
 
-    // 2. Add the 3D Floor
+    // Add Floor
     world.add(PerspectiveGrid(cameraComponent));
 
     // Initialize Player
     final playerController = StickmanController();
     player = Player(controller: playerController);
-    // Add debug visual to player
     player.add(RectangleComponent(size: Vector2(50, 100), paint: BasicPalette.green.withAlpha(100).paint()));
     world.add(player);
 
-    // Debug HUD Text
-    camera.viewport.add(TextComponent(text: 'HUD WORKING', position: Vector2(100, 100)));
+    // Debug HUD
+    camera.viewport.add(TextComponent(text: 'HUD WORKING', position: Vector2(20, 20)));
 
     // Initialize Boss
     final bossController = StickmanController();
@@ -63,7 +63,7 @@ class SoulsStickmanGame extends FlameGame with HasKeyboardHandlerComponents {
     boss.position = Vector2(200, -200);
     world.add(boss);
 
-    // Joystick
+    // UI Components (Joystick/Buttons) go directly to the game (HUD), not the world
     final knobPaint = BasicPalette.blue.paint()..color = BasicPalette.blue.color.withAlpha(200);
     final backgroundPaint = BasicPalette.blue.paint()..color = BasicPalette.blue.color.withAlpha(100);
     joystick = JoystickComponent(
@@ -74,7 +74,6 @@ class SoulsStickmanGame extends FlameGame with HasKeyboardHandlerComponents {
     );
     add(joystick);
 
-    // Dodge Button
     final dodgePaint = BasicPalette.red.paint()..color = BasicPalette.red.color.withAlpha(200);
     dodgeButton = HudButtonComponent(
       button: CircleComponent(radius: 30, paint: dodgePaint),
@@ -88,7 +87,6 @@ class SoulsStickmanGame extends FlameGame with HasKeyboardHandlerComponents {
 
     // Camera follow
     camera.follow(player);
-    camera.viewfinder.anchor = const Anchor(0.5, 0.8);
   }
 
   @override
