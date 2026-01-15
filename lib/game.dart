@@ -24,6 +24,9 @@ class SoulsStickmanGame extends FlameGame with HasKeyboardHandlerComponents {
   Future<void> onLoad() async {
     await super.onLoad();
 
+    // Enable debug mode to see component boundaries
+    debugMode = true;
+
     // Setup Camera
     cameraComponent = SoulsCameraComponent();
     add(cameraComponent);
@@ -31,7 +34,12 @@ class SoulsStickmanGame extends FlameGame with HasKeyboardHandlerComponents {
     // Initialize Player
     final playerController = StickmanController();
     player = Player(controller: playerController);
+    // Add debug visual to player
+    player.add(RectangleComponent(size: Vector2(50, 100), paint: BasicPalette.green.withAlpha(100).paint()));
     world.add(player);
+
+    // Debug HUD Text
+    camera.viewport.add(TextComponent(text: 'HUD WORKING', position: Vector2(100, 100)));
 
     // Initialize Boss
     final bossController = StickmanController();

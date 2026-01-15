@@ -33,6 +33,9 @@ class StickmanAnimator extends PositionComponent {
 
   @override
   void render(Canvas canvas) {
+    // Debug circle to verify render is called
+    canvas.drawCircle(Offset(size.x/2, size.y/2), 10, Paint()..color = Colors.cyan);
+
     try {
       // Determine the view rotation Y (Yaw)
       double stickmanFacing = facingAngleOverride ?? controller.facingAngle;
