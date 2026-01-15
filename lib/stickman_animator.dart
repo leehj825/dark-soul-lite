@@ -8,14 +8,14 @@ import 'package:stickman_3d/stickman_3d.dart';
 class StickmanAnimator extends PositionComponent {
   final StickmanController controller;
 
-  // Camera/View state
+  // View state
   double cameraYaw = 0.0;
   Vector2 velocity = Vector2.zero();
   double? facingAngleOverride;
 
+  // Loading state
   bool _isLoaded = false;
-
-  // Internal storage for clips since we are manually managing them
+  String? _pendingAnimation; // Fixes the race condition
   final Map<String, StickmanClip> _clips = {};
 
   StickmanAnimator({
@@ -27,62 +27,69 @@ class StickmanAnimator extends PositionComponent {
   Future<void> onLoad() async {
     await super.onLoad();
     try {
-      // 1. Load the file content as a string
       final sapContent = await rootBundle.loadString('assets/data/animations.sap');
 
-      // 2. Manually parse the JSON (Fixes the build error)
       if (sapContent.isNotEmpty) {
         final jsonMap = jsonDecode(sapContent);
         List<StickmanClip> loadedClips = [];
-        // Handle standard project format
         if (jsonMap.containsKey('clips')) {
           loadedClips = (jsonMap['clips'] as List)
               .map((c) => StickmanClip.fromJson(c))
               .toList();
-        }
-        // Handle single clip format
-        else if (jsonMap.containsKey('keyframes')) {
+        } else if (jsonMap.containsKey('keyframes')) {
            loadedClips = [StickmanClip.fromJson(jsonMap)];
         }
-        // 3. Store clips in our local map
+        // STORE AND NORMALIZE NAMES
         for (var clip in loadedClips) {
-          _clips[clip.name] = clip;
+          // Fix: Remove ".fbx" so "sword idle.fbx" becomes "sword idle"
+          String cleanName = clip.name.replaceAll('.fbx', '');
+
+          // Update the clip's internal name too
+          // Note: StickmanClip might be immutable, so we just map the clean key
+          _clips[cleanName] = clip;
         }
-        debugPrint("Stickman Loaded: ${_clips.length} animations found.");
+        debugPrint("✅ LOADED ANIMATIONS: ${_clips.keys.join(', ')}");
       }
       _isLoaded = true;
-      // 4. Force initial update to prevent render crash
+
+      // Fix: Play the animation that was requested while loading
+      if (_pendingAnimation != null) {
+        playAnimation(_pendingAnimation!);
+        _pendingAnimation = null;
+      }
+
       controller.update(0.0, 0.0, 0.0);
     } catch (e) {
-      debugPrint("CRITICAL ERROR loading animations: $e");
+      debugPrint("❌ ERROR loading animations: $e");
     }
   }
 
   void playAnimation(String name) {
-    if (!_isLoaded) return;
+    // 1. If not loaded yet, save for later
+    if (!_isLoaded) {
+      _pendingAnimation = name;
+      return;
+    }
 
-    // Look up the clip in our manually loaded map
+    // 2. Play if found
     if (_clips.containsKey(name)) {
       final clip = _clips[name];
-      // Apply to controller
-      if (controller.activeClip?.name != name) {
+      if (controller.activeClip != clip) {
         controller.activeClip = clip;
         controller.isPlaying = true;
         controller.currentFrameIndex = 0;
         controller.setMode(EditorMode.animate);
       }
     } else {
-      // debugPrint("Animation '$name' not found.");
+      // Optional: fallback to fuzzy matching if exact match fails
+      // debugPrint("⚠️ Animation '$name' not found. Available: ${_clips.keys.length}");
     }
   }
 
   @override
   void render(Canvas canvas) {
-    // Prevent rendering before data is ready (Fixes Gray Screen)
     if (!_isLoaded) return;
 
-    // Debug visual
-    // canvas.drawCircle(Offset(size.x/2, size.y/2), 10, Paint()..color = Colors.cyan);
     try {
       double stickmanFacing = facingAngleOverride ?? controller.facingAngle;
       double viewRotationY = stickmanFacing - cameraYaw;
@@ -94,17 +101,13 @@ class StickmanAnimator extends PositionComponent {
         cameraView: CameraView.free,
       );
       painter.paint(canvas, size.toSize());
-    } catch (e) {
-      // Suppress transient render errors
-    }
+    } catch (e) {}
   }
 
   @override
   void update(double dt) {
     super.update(dt);
     if (!_isLoaded) return;
-
-    // Update the physics/animation controller
     controller.update(dt, velocity.x, velocity.y);
   }
 }
