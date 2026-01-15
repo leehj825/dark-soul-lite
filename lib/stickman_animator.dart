@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:math';
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
@@ -19,9 +18,6 @@ class StickmanAnimator extends PositionComponent {
 
   bool _isLoaded = false;
 
-  // Store loaded clips locally since Controller might not persist the library
-  final Map<String, StickmanClip> _clips = {};
-
   StickmanAnimator({
     required this.controller,
     super.size,
@@ -31,29 +27,21 @@ class StickmanAnimator extends PositionComponent {
   Future<void> onLoad() async {
     await super.onLoad();
     try {
+      // 1. Load the file content
       final sapContent = await rootBundle.loadString('assets/data/animations.sap');
 
-      // Parse JSON manually as StickmanPersistence.loadProject uses FilePicker (UI)
-      if (sapContent.isNotEmpty) {
-        final jsonMap = jsonDecode(sapContent);
-        if (jsonMap.containsKey('clips')) {
-          final clipsList = (jsonMap['clips'] as List)
-              .map((c) => StickmanClip.fromJson(c))
-              .toList();
+      // 2. Use StickmanPersistence to parse the WHOLE project (Skeleton + Clips)
+      // This ensures your custom stickman design is loaded, not just the default one.
+      final library = StickmanPersistence.load(sapContent);
 
-          for (var clip in clipsList) {
-            _clips[clip.name] = clip;
-          }
-        } else if (jsonMap.containsKey('keyframes')) {
-           // Single clip fallback
-           final clip = StickmanClip.fromJson(jsonMap);
-           _clips[clip.name] = clip;
-        }
-      }
+      // 3. Apply the library to the controller
+      // (This updates the skeleton structure and registers all clips)
+      controller.loadLibrary(library);
 
       _isLoaded = true;
+      debugPrint("Stickman Library Loaded: ${library.clips.length} clips found.");
 
-      // Force initial update
+      // Force initial update to apply the skeleton pose
       controller.update(0.0, 0.0, 0.0);
     } catch (e) {
       debugPrint("Error initializing StickmanController: $e");
@@ -61,15 +49,18 @@ class StickmanAnimator extends PositionComponent {
   }
 
   void playAnimation(String name) {
+    if (!_isLoaded || controller.library == null) return;
+
     try {
-      if (_clips.containsKey(name)) {
-        final clip = _clips[name];
+      // Look up the clip in the library loaded into the controller
+      if (controller.library!.clips.containsKey(name)) {
+        final clip = controller.library!.clips[name];
         controller.activeClip = clip;
         controller.isPlaying = true;
         controller.currentFrameIndex = 0;
         controller.setMode(EditorMode.animate);
       } else {
-        debugPrint("Animation '$name' not found in loaded clips: ${_clips.keys.join(', ')}");
+        debugPrint("Animation '$name' not found. Available: ${controller.library!.clips.keys.join(', ')}");
       }
     } catch(e) {
       debugPrint("Animation playback error: $e");
