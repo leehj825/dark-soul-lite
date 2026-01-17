@@ -36,7 +36,7 @@ class SoulsStickmanGame extends FlameGame with HasKeyboardHandlerComponents {
 
     // FIX: Use visibleGameSize for fullscreen retro look
     camera.viewfinder.visibleGameSize = Vector2(320, 180);
-    camera.viewfinder.anchor = const Anchor(0.5, 0.8);
+    camera.viewfinder.anchor = Anchor.center;
 
     // Debug mode
     debugMode = true;
