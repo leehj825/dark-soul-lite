@@ -5,13 +5,15 @@ import 'game.dart';
 
 void main() {
   runZonedGuarded(() {
-    runApp(const MaterialApp(
-      home: GameWidget<SoulsStickmanGame>.controlled(
-        gameFactory: SoulsStickmanGame.new,
+    runApp(MaterialApp(
+      debugShowCheckedModeBanner: false, // Removes the debug banner
+      home: Scaffold(
+        body: GameWidget<SoulsStickmanGame>.controlled(
+          gameFactory: SoulsStickmanGame.new,
+        ),
       ),
     ));
   }, (error, stack) {
-    debugPrint("CRASH ERROR: $error");
-    debugPrint("STACK: $stack");
+    debugPrint("ERROR: $error");
   });
 }
